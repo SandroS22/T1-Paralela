@@ -2,13 +2,17 @@ package main
 
 import (
 	"fmt"
-	"paralela/cmd"
+	"paralela/cmd/paralel"
+	"paralela/cmd/seq"
 	"paralela/cmd/util"
+	"runtime"
 	"time"
 )
 
 
 func main(){
+
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	// Definições para o teste fixo
 	const ARRAY_SIZE = 1000000 
 	const FIXED_SEED = 42
@@ -21,14 +25,21 @@ func main(){
 
 	// Medição de Tempo
 	start := time.Now()
-	
 	// Executa a ordenação sequencial
-	sortedArray := cmd.MergeSort(arrayToSort)
+	sortedArray := seq.MergeSort(arrayToSort)
+	elapsedTime := time.Since(start)
+	fmt.Printf("Tempo de execução (Tempo Sequencial): %s\n", elapsedTime)
+
+	if len(sortedArray) > 0 {
+		fmt.Printf("Primeiro elemento: %d, Último elemento: %d\n", sortedArray[0], sortedArray[len(sortedArray)-1])
+	}
+
+	start = time.Now()
+	sortedArray = paralel.ParalelMergeSort(arrayToSort)
+	elapsedTime = time.Since(start)
+
 	
-	elapsed := time.Since(start)
-	
-	fmt.Printf("Ordenação Sequencial Concluída.\n")
-	fmt.Printf("Tempo de Execução (Tempo Sequencial): %s\n", elapsed)
+	fmt.Printf("Tempo de execução (Tempo Paralelo): %s\n", elapsedTime)
 	
 	if len(sortedArray) > 0 {
 		fmt.Printf("Primeiro elemento: %d, Último elemento: %d\n", sortedArray[0], sortedArray[len(sortedArray)-1])

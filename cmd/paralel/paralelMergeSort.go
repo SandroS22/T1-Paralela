@@ -1,7 +1,11 @@
-package cmd
+package paralel
+
+import (
+	"sync"
+)
 
 
-// Merge combina dois slices já ordenadas em uma única fatia ordenada.
+
 func Merge(left, right []int) []int {
 	// Cria o slice de resultado com capacidade total das duas fatias de entrada.
 	result := make([]int, 0, len(left)+len(right))
@@ -32,17 +36,29 @@ func Merge(left, right []int) []int {
 	return result
 }
 
-// MergeSort é a função recursiva que implementa a lógica de "divisão e conquista".
-func MergeSort(arr []int) []int {
+func ParalelMergeSort(arr []int) []int {
+	// Semafaro
+  var wg sync.WaitGroup
 	// Caso base da recursão: uma fatia com 0 ou 1 elemento está sempre ordenada.
 	if len(arr) <= 1 {
 		return arr
 	}
-	
+
 	mid := len(arr) / 2
-	
-	left := MergeSort(arr[:mid])
-	right := MergeSort(arr[mid:])
+	var left, right []int
+
+	// Adiciona 1 goroutine ao semafaro
+	wg.Add(1)
+	go func(){
+		// Garante que ira reduzir uma goroutine ao final da funcao
+		defer wg.Done()
+		left = ParalelMergeSort(arr[:mid])
+	}()
+
+	right = ParalelMergeSort(arr[mid:])
+
+	// Espera semafaro chegar a 0. Garantindo sincronizacao
+	wg.Wait()
 	
 	return Merge(left, right)
 }
