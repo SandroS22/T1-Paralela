@@ -14,7 +14,7 @@ Cada vetor é ordenado individualmente, um de cada vez, utilizando o algoritmo M
 
 Serve como base de comparação para as versões paralelas.
 
-### Solução Paralela 1 (Entre tarefas)
+### Solução Paralela 2A (Entre tarefas)
 
 O programa executa várias tarefas independentes em paralelo, onde cada tarefa é a ordenação de um vetor.
 
@@ -22,7 +22,7 @@ As tarefas são distribuídas a um pool de threads (workers) equivalente ao núm
 
 Cada tarefa usa o MergeSort sequencial internamente, garantindo isonomia no teste de paralelismo entre tarefas.
 
-### Solução Paralela 2 (Dentro da tarefa)
+### Solução Paralela 2B (Dentro da tarefa)
 
 Dentro de cada tarefa, usou-se um MergeSort paralelo
 
@@ -30,11 +30,20 @@ Essa versão cria goroutines recursivamente até um limite controlado de profund
 
 Implementada em cmd/parallel/parallelMergeSort.go.
 
-### Solução Paralela 3 (Biblioteca própria)
+### Solução Biblioteca 3A (Entre tarefas, MergeSort Sequencial)
 
 Foi desenvolvida uma biblioteca genérica de execução paralela, localizada em cmd/lib/executor.go.
 
-A biblioteca implementa um pool de threads e o padrão Produtor/Consumidor.
+A biblioteca implementa um pool de threads baseado no padrão Produtor/Consumidor.
+Cada vetor é tratado como uma tarefa independente, processada em paralelo pelos workers.
+Dentro de cada tarefa, o algoritmo utilizado é o MergeSort sequencial (seq.MergeSort).
+
+### Solução Biblioteca 3B (Entre tarefas, MergeSort Paralelo)
+
+Utiliza a mesma biblioteca da solução 3A (cmd/lib/executor.go), mas substitui o algoritmo interno de cada tarefa.
+
+Cada tarefa executa o MergeSort paralelo (parallel.ParallelMergeSort), que divide o vetor em subtarefas internas.
+Dessa forma, o paralelismo ocorre tanto entre tarefas (via executor) quanto dentro de cada tarefa (via goroutines do algoritmo).
 
 ## Padrões de Projeto Aplicados
 
@@ -45,6 +54,16 @@ A biblioteca implementa um pool de threads e o padrão Produtor/Consumidor.
 * Divide and Conquer – estrutura de recursão e fusão do MergeSort.
 
 * Strategy – escolha entre diferentes modos de execução (sequencial, paralelo 1, paralelo 2).
+
+## Speed up
+
+### Comparando com solução Paralela 1
+
+![Speed up comparando com a solução Paralela 1](img/speed_up_parseq.png)
+
+### Comparando com solução Paralela 2
+
+![Speed up comparando com a solução Paralela 2](img/speed_up_parpar.png)
 
 ## Compilação
 Para compilação, utilize os seguintes códigos no terminal:
@@ -68,6 +87,8 @@ paralela/
 │   │   └── sequentialMergeSort.go # MergeSort sequencial
 │   └── util/
 │       └── arrayGeneration.go     # Geração determinística de vetores
+│
+├── img/
 │
 ├── main.go                        # Execução e comparação das versões
 └── go.mod                         # Configuração do módulo Go

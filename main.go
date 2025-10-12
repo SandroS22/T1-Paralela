@@ -12,85 +12,95 @@ import (
 )
 
 func main() {
+	for workers := 1; workers <= 12; workers++ {
+		runtime.GOMAXPROCS(workers)
+		// Busca o número de núcleos físicos disponíveis para goroutines
+		//workers := runtime.GOMAXPROCS(runtime.NumCPU()) // Rode o lopp de 1..12 workers. Ajuste conforme a máquina.
+		log.Printf("Tempo total (Número máximo de goroutines (workers): %d\n", workers)
 
-	workers := runtime.GOMAXPROCS(runtime.NumCPU())
+		// Definições para o teste fixo
+		const (
+			ARRAY_SIZE = 1000000
+			NUM_TASKS  = 16 // Número de vetores = tarefas
+			FIXED_SEED = 42
+		)
 
-	// Definições para o teste fixo
-	const (
-		ARRAY_SIZE = 1000000
-		NUM_TASKS  = 16 // Número de vetores = tarefas
-		FIXED_SEED = 42
-	)
+		// Gera o conjunto de tarefas: vetores independentes. Cada vetor = 1 tarefa
+		datasets := make([][]int, NUM_TASKS)
+		for i := 0; i < NUM_TASKS; i++ {
+			// Seeds diferentes por tarefa, mas determinísticas.
+			datasets[i] = util.GenerateDeterministicArray(ARRAY_SIZE, int64(FIXED_SEED+int64(i)))
+		}
 
-	// Gera o conjunto de tarefas: vetores independentes.
-	datasets := make([][]int, NUM_TASKS)
-	for i := 0; i < NUM_TASKS; i++ {
-		// Seeds diferentes por tarefa, mas determinísticas.
-		datasets[i] = util.GenerateDeterministicArray(ARRAY_SIZE, int64(FIXED_SEED+int64(i)))
-	}
+		// 1. Método de processamento sequencial
+		seqInputs := cloneDatasets(datasets)
+		start := time.Now()
 
-	// Método de processamento sequencial
-	seqInputs := cloneDatasets(datasets)
-	start := time.Now()
-	var seqResult [][]int
+		for i := 0; i < NUM_TASKS; i++ {
+			_ = seq.MergeSort(seqInputs[i])
+		}
 
-	for i := 0; i < NUM_TASKS; i++ {
-		seqResult = append(seqResult, seq.MergeSort(seqInputs[i]))
-	}
+		elapsedSeq := time.Since(start)
+		log.Printf("Tempo de execução (Tarefas sequênciais): %s\n", elapsedSeq)
 
-	elapsedTime := time.Since(start)
-	log.Printf("Tempo de execução (Tarefas sequênciais): %s\n", elapsedTime)
-	if(!allInnerSlicesSorted(seqResult)) {
-		log.Println("erro: Ha vetores nao organizados! (Tarefas sequênciais)")
-	}
+		// 2A. Método de processamento paralelo entre tarefas
+		// Cada tarefa usa MergeSort sequencial
+		parInputs := cloneDatasets(datasets)
+		start = time.Now()
 
-	// Método de processamento paralelo (Multithread de tarefas e merge sort sequencial)
-	parInputs := cloneDatasets(datasets)
-	var parResult [][]int
-	start = time.Now()
-
-	runTasksInParallel(parInputs, func(arr []int) {
-		parResult = append(parResult, seq.MergeSort(arr))
-	})
-
-	elapsedTime = time.Since(start)
-
-	log.Printf("Tempo total (Tarefas em Paralelo, mergesort seq): %s\n", elapsedTime)
-	if(!allInnerSlicesSorted(parResult)) {
-		log.Println("erro: Ha vetores nao organizados! (Tarefas em Paralelo, mergesort seq)")
-	}
-
-	// Método de processamento paralelo (Multithread de tarefas e merge sort sequencial)
-	parAlgoInputs := cloneDatasets(datasets)
-	var parAlgoInputsResult [][]int
-	start = time.Now()
-
-	runTasksInParallel(parAlgoInputs, func(arr []int) {
-		parResult = append(parAlgoInputsResult, parallel.ParallelMergeSort(arr))
-	})
-
-	elapsedTime = time.Since(start)
-	log.Printf("Tempo total (Tarefas em Paralelo, mergesort paralelo): %s\n", elapsedTime)
-	if(!allInnerSlicesSorted(parAlgoInputsResult)) {
-		log.Println("erro: Ha vetores nao organizados! (Tarefas em Paralelo, mergesort seq)")
-	}
-
-	// crie o executor antes do loop:
-	start = time.Now()
-	exec := lib.NewExecutor(workers, workers*2) // fila 2x workers
-
-	// submeta cada vetor como uma tarefa
-	for i := range datasets {
-		arr := datasets[i] // captura
-		_ = exec.Execute(func() error {
+		runTasksInParallel(workers, parInputs, func(arr []int) {
 			_ = seq.MergeSort(arr)
-			return nil
 		})
+
+		elapsedTimeParSeq := time.Since(start)
+		log.Printf("Tempo total (Tarefas em Paralelo, mergesort seq): %s\n", elapsedTimeParSeq)
+
+		// 2B. Método de processamento paralelo entre tarefas
+		// Cada tarefa usa MergeSort paralelo
+		parAlgoInputs := cloneDatasets(datasets)
+		start = time.Now()
+
+		runTasksInParallel(workers, parAlgoInputs, func(arr []int) {
+			_ = parallel.ParallelMergeSort(arr)
+		})
+
+		elapsedTimeParPar := time.Since(start)
+		log.Printf("Tempo total (Tarefas em Paralelo, mergesort paralelo): %s\n", elapsedTimeParPar)
+
+		// 3A. Método usando biblioteca + MergeSort sequencial
+		{
+			libInputs := cloneDatasets(datasets)
+			start := time.Now()
+			exec := lib.NewExecutor(workers, workers*2)
+			for i := range libInputs {
+				arr := libInputs[i]
+				_ = exec.Execute(func() error {
+					_ = seq.MergeSort(arr)
+					return nil
+				})
+			}
+			exec.Shutdown()
+			elapsedLibA := time.Since(start)
+			log.Printf("Tempo total (Biblioteca 3A, mergesort seq): %s\n", elapsedLibA)
+		}
+
+		// 3B. Método usando biblioteca + MergeSort paralelo (paralelismo interno)
+		{
+			libInputs := cloneDatasets(datasets)
+			start := time.Now()
+			exec := lib.NewExecutor(workers, workers*2)
+			for i := range libInputs {
+				arr := libInputs[i]
+				_ = exec.Execute(func() error {
+					_ = parallel.ParallelMergeSort(arr)
+					return nil
+				})
+			}
+			exec.Shutdown()
+			elapsedLibB := time.Since(start)
+			log.Printf("Tempo total (Biblioteca 3B, mergesort paralelo): %s\n", elapsedLibB)
+		}
 	}
-	// finalize
-	exec.Shutdown()
-	elapsedTime = time.Since(start)
-	log.Printf("Tempo total (Biblioteca): %s\n", elapsedTime)
 }
 
 // Criação de uma deep copy de uma matriz de inteiros.
@@ -104,8 +114,8 @@ func cloneDatasets(src [][]int) [][]int {
 	return out
 }
 
-func runTasksInParallel(datasets [][]int, work func([]int)) {
-	workers := runtime.GOMAXPROCS(0) //usa NCPU (CPU lógicas) workers (goroutines)
+// runTasksInParallel: pool simples controlado por 'workers'
+func runTasksInParallel(workers int, datasets [][]int, work func([]int)) {
 	jobs := make(chan []int, len(datasets))
 	var wg sync.WaitGroup
 
@@ -127,23 +137,4 @@ func runTasksInParallel(datasets [][]int, work func([]int)) {
 	close(jobs)
 
 	wg.Wait()
-}
-
-func isSorted(slice []int) bool {
-	for i := 1; i < len(slice); i++ {
-		if slice[i] < slice[i-1] {
-			return false
-		}
-	}
-	return true
-}
-
-// Verifica se todos os slices internos estão ordenados
-func allInnerSlicesSorted(matrix [][]int) bool {
-	for _, inner := range matrix {
-		if !isSorted(inner) {
-			return false
-		}
-	}
-	return true
 }
