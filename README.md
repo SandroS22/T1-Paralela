@@ -75,7 +75,7 @@ Speed up chega a ~5–6×, indicando melhor aproveitamento do paralelismo intern
 
 Comportamento quase idêntico ao 2A, mostrando que a biblioteca replica corretamente a execução paralela entre tarefas.
 
-### Comparando com solução Paralela 2B
+### Comparando com solução Paralela 3B
 
 ![Speed up comparando com a solução Paralela 3B](img/speed_up_3B.png)
 
