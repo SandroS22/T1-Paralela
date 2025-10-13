@@ -70,6 +70,8 @@ func main() {
 	{
 		libInputs := cloneDatasets(datasets)
 		start := time.Now()
+
+		//Cria o pool (Executor) e depois executa
 		exec := lib.NewExecutor(workers, workers*2)
 		for i := range libInputs {
 			arr := libInputs[i]
@@ -79,23 +81,26 @@ func main() {
 			})
 		}
 		exec.Shutdown()
+
 		elapsedLibA := time.Since(start)
 		log.Printf("Tempo total (Biblioteca 3A, mergesort seq): %s\n", elapsedLibA)
 	}
 
 	// 3B. Método usando biblioteca + MergeSort paralelo (paralelismo interno)
 	{
-		libInputs := cloneDatasets(datasets)
+		libAlgoInputs := cloneDatasets(datasets)
 		start := time.Now()
+
 		exec := lib.NewExecutor(workers, workers*2)
-		for i := range libInputs {
-			arr := libInputs[i]
+		for i := range libAlgoInputs {
+			arr := libAlgoInputs[i]
 			_ = exec.Execute(func() error {
 				_ = parallel.ParallelMergeSort(arr)
 				return nil
 			})
 		}
 		exec.Shutdown()
+
 		elapsedLibB := time.Since(start)
 		log.Printf("Tempo total (Biblioteca 3B, mergesort paralelo): %s\n", elapsedLibB)
 	}
@@ -114,6 +119,7 @@ func cloneDatasets(src [][]int) [][]int {
 
 // runTasksInParallel: pool simples controlado por 'workers'
 func runTasksInParallel(workers int, datasets [][]int, work func([]int)) {
+	// Cria um canal (tipo uma lista) com os vetores/tarefas desarrumados
 	jobs := make(chan []int, len(datasets))
 	var wg sync.WaitGroup
 

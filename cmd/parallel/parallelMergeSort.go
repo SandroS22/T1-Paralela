@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-const minChunk = 1 << 14 // = 2^14 = 16384. Ajuste com base no seu hardware.
+const minChunk = 1 << 14 // = 2^14 = 16384. O correto seria testar diferentes minChunks
 
 // depthOrDefault define quantos níveis paralelos abrir baseado
 // no número de CPUs lógicas que o Go está usando.
@@ -17,7 +17,7 @@ func depthOrDefault(d int) int {
 	}
 	n := runtime.GOMAXPROCS(0) //Não altera o número de threads máximas que podem executar goroutines simultaneamente.
 
-	//log2 aproximado por contagem de bits.
+	//log2n aproximado por contagem de bits.
 	depth := 0
 	for n > 1 {
 		n >>= 1 //bit shift a direita (n = n/2, mas atuando com bits)
