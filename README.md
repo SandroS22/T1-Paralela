@@ -57,13 +57,29 @@ Dessa forma, o paralelismo ocorre tanto entre tarefas (via executor) quanto dent
 
 ## Speed up
 
-### Comparando com solução Paralela 1
+### Comparando com solução Paralela 2A
 
-![Speed up comparando com a solução Paralela 1](img/speed_up_parseq.png)
+![Speed up comparando com a solução Paralela 2A](img/speed_up_2A.png)
 
-### Comparando com solução Paralela 2
+Speed up cresce até ~4,5× e estabiliza. Ganho limitado por overhead de criação de goroutines e balanceamento de carga.
 
-![Speed up comparando com a solução Paralela 2](img/speed_up_parpar.png)
+### Comparando com solução Paralela 2B
+
+![Speed up comparando com a solução Paralela 2B](img/speed_up_2B.png)
+
+Speed up chega a ~5–6×, indicando melhor aproveitamento do paralelismo interno do algoritmo, mas com saturação após 8–10 goroutines.
+
+### Comparando com solução Paralela 3A
+
+![Speed up comparando com a solução Paralela 3A](img/speed_up_3A.png)
+
+Comportamento quase idêntico ao 2A, mostrando que a biblioteca replica corretamente a execução paralela entre tarefas.
+
+### Comparando com solução Paralela 2B
+
+![Speed up comparando com a solução Paralela 3B](img/speed_up_3B.png)
+
+Apresenta desempenho próximo do 2B, confirmando que o executor mantém eficiência mesmo com paralelismo interno no MergeSort.
 
 ## Compilação
 Para compilação, utilize os seguintes códigos no terminal:
