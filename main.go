@@ -39,8 +39,8 @@ func main() {
 		_ = seq.MergeSort(seqInputs[i])
 	}
 
-	elapsedSeq := time.Since(start)
-	log.Printf("Tempo de execução (Tarefas sequênciais): %s\n", elapsedSeq)
+	elapsedTimeSeq := time.Since(start)
+	log.Printf("Tempo de execução (Tarefas sequênciais): %s\n", elapsedTimeSeq)
 
 	// 2A. Método de processamento paralelo entre tarefas
 	// Cada tarefa usa MergeSort sequencial
